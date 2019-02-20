@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 ## General Goals
 
-The main goal is to preform a logistic regression invesigating redd presence (redd=1) and absence (redd=0). Potential parameters include depth, velocity, csi, wsg, dar, and site (Merced River Ranch (mrr) and Robinson Reach (rr)). The steps include generating a candidate set of models, run AIC, and additional statistics as needed. This analysis is simmilar to Benjankar et al., (2016).
+The main goal is to perform a logistic regression investigating redd presence (redd=1) and absence (redd=0). Potential parameters include depth, velocity, csi, wsg, dar, and site (Merced River Ranch (mrr) and Robinson Reach (rr)). The steps include generating a candidate set of models, run AIC, and additional statistics as needed. This analysis is similar to Benjankar et al., (2016). The GIT repository can be found here https://github.com/RMBond/Merced_Redd_selection.git
 
       
 **Description of Datasets:**  
@@ -32,6 +32,7 @@ The script **Redd_logisticregression.R** was created to run the logistic regress
 
 ## Next To Do's
 
-1. Additional statistics? (Wald statistic?)
+1. Other candidate models? Interactions?
+2. Additional statistics? (Wald statistic?)
 
 
