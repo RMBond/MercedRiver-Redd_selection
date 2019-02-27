@@ -20,6 +20,8 @@ emerson.dat <- read.csv('Data/grainsize/Emerson_rawcounts_20190222.csv') %>%
          size_shift = ifelse(is.na(size_shift), 
                              4, 
                              size_shift)) %>%
+  select(-size) %>%
+  rename(size = size_shift) %>%
   ungroup()
 
 str(emerson.dat, give.attr = F)
