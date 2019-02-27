@@ -1,0 +1,124 @@
+---
+title: "Calculate grain size percentiles for Emerson data"
+output: html_notebook
+---
+## Purpose
+The purpose of this script is to calculate the D16, D50 and D84 values for the data Emerson collected. The method I decided to use is to interpolate a straight line between Emerson's points, and report the size (mm) where that interpolated line crossed the desired percentile (% finer than). 
+
+
+## Load data and libraries
+
+**Note: we believe the Emerson data needs to be shifted to one category smaller (i.e. 45mm --> 32mm)**
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+emerson.dat <- read.csv('Data/grainsize/Emerson_rawcounts_20190222.csv') %>%
+  group_by(xs, position) %>%
+  mutate(size_shift = lead(size, 1), # shift size category by 1
+         size_shift = ifelse(is.na(size_shift), 
+                             4, 
+                             size_shift)) %>%
+  ungroup()
+
+str(emerson.dat, give.attr = F)
+
+```
+
+## Quick plot of data
+
+```{r}
+ggplot(emerson.dat,
+       aes(size, prcnt_finer, color = position)) +
+  geom_point() +
+  facet_wrap(~xs)
+
+```
+
+## Find gransize at percentiles
+
+Create a function which interpolates a straight line between the two points nearest to the desired percentile `Dx`. Using the data provided by Emerson, the function looks for the minimum grain size where the percent finer is greater than `Dx`. Then it calculates the slope between those two lines. From here, it uses the slope and the `rise` to get to 50% to calculate a `run` (distance on the x-axis `grain size` we need to move from the known point to `D50`).   
+
+
+```{r} 
+
+calculate_dx <- function(dx) {
+  'Purpose: Calculate the grainsize for a given percentile
+  Method: Interpolate a straight line between the two bounding point
+  Input: Desired percentile 
+  Output: Grainsize at desired percentile'
+  emerson.dat %>%
+    group_by(xs, position) %>%
+    mutate(abovex = min(size[prcnt_finer > dx]),
+           lessx = max(size[prcnt_finer <= dx])) %>%
+    filter(size %in% c(abovex, lessx)) %>%
+    mutate(slope = (max(prcnt_finer) - min(prcnt_finer)) / (max(size) - min(size))) %>%
+    filter(size == lessx) %>%
+    mutate(run = (dx - prcnt_finer) / slope,
+           dx_size = size + run,
+           dx = dx) %>%
+    select(xs, position, dx, dx_size)
+}
+
+
+
+```
+ Once we have this function set up, loop through D16, D50 and D84, `join` those results together and write to a csv `write.csv`. 
+
+Also join in the attribute table from `rrGSDbendPts2015.shp` (which I exported here as a `.csv` file) to get the unique identifier `ET_ID`.
+
+```{r}
+
+dxs <- c(16, 50, 84) # choose which percentiles to calculate (e.g. D16, D50, D84)
+
+results <- lapply(dxs, 
+               calculate_dx) %>%
+  do.call(rbind, . ) %>%
+  mutate(dx = paste0('D', dx)) %>%
+  spread(dx, dx_size) %>%
+  left_join(read.csv('Data/grainsize/rrGSDbendPts2015.csv') %>%
+              select(xs, position, ET_ID))
+
+head(results)
+
+write.csv(results, 'Emerson_processed_dat.csv')
+```
+
+
+## Plot of results
+
+####As a test to make sure this went well, plot up the calculated `D50` vs the observed data. 
+
+```{r}
+emerson.dat %>%
+  left_join(results) %>%
+  ggplot() +
+  theme_bw() +
+  geom_point(aes(size, prcnt_finer, color = position)) +
+  facet_wrap(~xs) + 
+  geom_hline(yintercept = 50, lty = 2) +
+  geom_vline(aes(xintercept = D50, color = position), lty = 2) +
+  lims(x = c(0,200)) +
+  labs(x = 'Size (mm)', y = 'Percent Finer (%)')
+
+#ggsave('Emerson_D50.jpg', width = 10, height = 8, dpi = 300)#pdfs 10x10
+```
+
+####One more test of the `D84`
+
+```{r}
+emerson.dat %>%
+  left_join(results) %>%
+  ggplot() +
+  theme_bw() +
+  geom_point(aes(size, prcnt_finer, color = position)) +
+  facet_wrap(~xs) + 
+  geom_hline(yintercept = 84, lty = 2) +
+  geom_vline(aes(xintercept = D84, color = position), lty = 2) +
+  lims(x = c(0,200)) +
+  labs(x = 'Size (mm)', y = 'Percent Finer (%)')
+```
+
+## Next steps
+From here the plan is to join the `D50` and `D84` from the Emerson data with the shapefile of pebble count locations from Lee. From there we will create a TIN and DEM interpolated raster of `D50` and `D84` for the entire wetted channel of the Robinson Ranch. 
