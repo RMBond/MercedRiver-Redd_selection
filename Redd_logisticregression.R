@@ -1,15 +1,66 @@
-# Purpose
+# Purpose:
 #The main goal is to preform a logistic regression invesigating redd presence (redd=1) and absence (redd=0). 
 # Potential parameters include depth, velocity, csi, wsg, dar, and site (Merced River Ranch (mrr) and Robinson Reach (rr)). 
 # The steps include generating a candidate set of models, run AIC, and additional statistics as needed.
 
-####Read in the data####
+
 library(dplyr)
+library(MuMIn) #install.packages(MuMIn)
+
+####Read in the data####
 hab <- read.csv("Data/mHabVarSite.csv", sep = ",", header = T) # all data pooled together by site
 rr <- hab %>% filter(site == "rr")
 mrr <- hab %>% filter(site == "mrr")
 
 ####Logistic Regression Model Setup####
+
+# RR
+null <- glm(redd ~ 1,data = rr, family = binomial(link = "logit"))
+d <- glm(redd ~ dep, data = rr, family = binomial(link = "logit"))
+v <- glm(redd ~ vel, data = rr, family = binomial(link = "logit"))
+c <- glm(redd ~ csi, data = rr, family = binomial(link = "logit"))
+da <- glm(redd ~ dar, data = rr, family = binomial(link = "logit"))
+w <- glm(redd ~ wsg, data = rr, family = binomial(link = "logit"))
+c.da <- glm(redd ~ dar + csi, data = rr, family = binomial(link = "logit"))
+c.w <- glm(redd ~ csi + wsg, data = rr, family = binomial(link = "logit"))
+c.da.w <- glm(redd ~ dar + csi+wsg, data = rr, family = binomial(link = "logit"))
+#c.w.inter <- glm(redd ~ csi + wsg + csi*wsg, data = rr, family = binomial(link = "logit")) #interaction term not needed since the observations are on the same spatial scale.
+
+raw <- AIC(d, v, c, da, w, c.da, c.w, c.da.w, null)
+rr.output <- aictable(raw,142)
+write.csv(rr.output, file = "Data/LR_Output/LROutput_RR.csv", na = "")
+
+#Best model of Robinson data is c.da, c.w, and c.da.w. 
+#IF we wanted to do model averaging using MuMIn library
+# library(MuMIn) #install.packages(MuMIn)
+# options(na.action = na.fail)
+# mod.avg <- model.avg(c.w.inter,dar.c)
+# summary(mod.avg)
+#write.csv(rr.param.output, file = "Data/LR_Output/LROutput_RR_modelaverageparam.csv", na = "")
+
+
+# MRR
+null <- glm(redd ~ 1,data = mrr, family = binomial(link = "logit"))
+d <- glm(redd ~ dep, data = mrr, family = binomial(link = "logit"))
+v <- glm(redd ~ vel, data = mrr, family = binomial(link = "logit"))
+c <- glm(redd ~ csi, data = mrr, family = binomial(link = "logit"))
+da <- glm(redd ~ dar, data = mrr, family = binomial(link = "logit"))
+w <- glm(redd ~ wsg, data = mrr, family = binomial(link = "logit"))
+c.da <- glm(redd ~ dar + csi, data = mrr, family = binomial(link = "logit"))
+c.w <- glm(redd ~ csi + wsg, data = mrr, family = binomial(link = "logit"))
+c.da.w <- glm(redd ~ dar + csi+wsg, data = mrr, family = binomial(link = "logit"))
+
+raw2 <- AIC(d, v, c, da, w, c.da, c.w, c.da.w, null)
+mrr.output <- aictable(raw2,142)
+
+#Best model of Merced River Ranch data
+summary(c.w.inter)
+par(mfrow = c(2,2)) 
+plot(c.w.inter)
+write.csv(mrr.output, file = "Data/LR_Output/LROutput_MRR.csv", na = "")
+
+#########################################################
+####Old Code using Site as a parameter ####
 #UPDATE: Keeping the two reaches separate makes more sence than pooling all the data together.
 #Proposing some basic models to make sure everything is functioning.
 # All data pooled together by site
@@ -44,53 +95,10 @@ mrr <- hab %>% filter(site == "mrr")
 #summary(dep)
 #par(mfrow = c(2,2)) 
 #plot(dep)
-write.csv(hab.output, file = "Data/LROutput_alldata.csv", na = "")
-write.csv(hab.output2, file = "Data/LROutput_alldata_WITHSITE.csv", na = "")
+#write.csv(hab.output, file = "Data/LROutput_alldata.csv", na = "")
+#write.csv(hab.output2, file = "Data/LROutput_alldata_WITHSITE.csv", na = "")
 
-# RR
-null <- glm(redd ~ 1,data = rr, family = binomial(link = "logit"))
-dep <- glm(redd ~ dep, data = rr, family = binomial(link = "logit"))
-v <- glm(redd ~ vel, data = rr, family = binomial(link = "logit"))
-c <- glm(redd ~ csi, data = rr, family = binomial(link = "logit"))
-dar <- glm(redd ~ dar, data = rr, family = binomial(link = "logit"))
-w <- glm(redd ~ wsg, data = rr, family = binomial(link = "logit"))
-dar.c <- glm(redd ~ dar + csi, data = rr, family = binomial(link = "logit"))
-dar.w <- glm(redd ~ dar + wsg, data = rr, family = binomial(link = "logit"))
-c.w.inter <- glm(redd ~ csi + wsg + csi*wsg, data = rr, family = binomial(link = "logit")) #interaction
-raw2 <- AIC(dep, v, c, dar, w, dar.c, dar.w, c.w.inter, null)
-rr.output <- aictable(raw2,142)
-
-write.csv(rr.output, file = "Data/LROutput_RR.csv", na = "")
-
-#Best model of Robinson data is both c.w.inter & dar.c
-#Model averaging using MuMIn library
-library(MuMIn) #install.packages(MuMIn)
-options(na.action = na.fail)
-mod.avg <- model.avg(c.w.inter,dar.c)
-summary(mod.avg)
-
-#write.csv(rr.param.output, file = "Data/LROutput_RR_modelaverageparam.csv", na = "")
-
-
-# MRR
-null <- glm(redd ~ 1,data = mrr, family = binomial(link = "logit"))
-dep <- glm(redd ~ dep, data = mrr, family = binomial(link = "logit"))
-v <- glm(redd ~ vel, data = mrr, family = binomial(link = "logit"))
-c <- glm(redd ~ csi, data = mrr, family = binomial(link = "logit"))
-dar <- glm(redd ~ dar, data = mrr, family = binomial(link = "logit"))
-w <- glm(redd ~ wsg, data = mrr, family = binomial(link = "logit"))
-dar.c <- glm(redd ~ dar + csi, data = mrr, family = binomial(link = "logit"))
-dar.w <- glm(redd ~ dar + wsg, data = mrr, family = binomial(link = "logit"))
-c.w.inter <- glm(redd ~ csi + wsg + csi*wsg, data = mrr, family = binomial(link = "logit")) #interaction
-raw3 <- AIC(dep, v, c, dar, w, dar.c, dar.w, c.w.inter, null)
-mrr.output <- aictable(raw3,142)
-
-#Best model of Merced River Ranch data
-summary(c.w.inter)
-par(mfrow = c(2,2)) 
-plot(c.w.inter)
-write.csv(mrr.output, file = "Data/LROutput_MRR.csv", na = "")
-
+#############################################
 #Extra Code
 #Model generating using MuMIn library
 #  library(MuMIn) #install.packages(MuMIn)
