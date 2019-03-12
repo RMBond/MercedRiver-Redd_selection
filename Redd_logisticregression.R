@@ -22,15 +22,15 @@ c <- glm(redd ~ csi, data = rr, family = binomial(link = "logit"))
 da <- glm(redd ~ dar, data = rr, family = binomial(link = "logit"))
 w <- glm(redd ~ wsg, data = rr, family = binomial(link = "logit"))
 c.da <- glm(redd ~ dar + csi, data = rr, family = binomial(link = "logit"))
-c.w <- glm(redd ~ csi + wsg, data = rr, family = binomial(link = "logit"))
-c.da.w <- glm(redd ~ dar + csi+wsg, data = rr, family = binomial(link = "logit"))
+#c.w <- glm(redd ~ csi + wsg, data = rr, family = binomial(link = "logit")) # dar and wsg are correlated 
+#c.da.w <- glm(redd ~ dar + csi+wsg, data = rr, family = binomial(link = "logit")) # dar and wsg are correlated
 #c.w.inter <- glm(redd ~ csi + wsg + csi*wsg, data = rr, family = binomial(link = "logit")) #interaction term not needed since the observations are on the same spatial scale.
 
-raw <- AIC(d, v, c, da, w, c.da, c.w, c.da.w, null)
+raw <- AIC(d, v, c, da, w, c.da, null)
 rr.output <- aictable(raw,142)
 write.csv(rr.output, file = "Data/LR_Output/LROutput_RR.csv", na = "")
 
-#Best model of Robinson data is c.da, c.w, and c.da.w. 
+#Best model of Robinson data is c.da. 
 #IF we wanted to do model averaging using MuMIn library
 # library(MuMIn) #install.packages(MuMIn)
 # options(na.action = na.fail)
@@ -47,16 +47,16 @@ c <- glm(redd ~ csi, data = mrr, family = binomial(link = "logit"))
 da <- glm(redd ~ dar, data = mrr, family = binomial(link = "logit"))
 w <- glm(redd ~ wsg, data = mrr, family = binomial(link = "logit"))
 c.da <- glm(redd ~ dar + csi, data = mrr, family = binomial(link = "logit"))
-c.w <- glm(redd ~ csi + wsg, data = mrr, family = binomial(link = "logit"))
-c.da.w <- glm(redd ~ dar + csi+wsg, data = mrr, family = binomial(link = "logit"))
+#c.w <- glm(redd ~ csi + wsg, data = mrr, family = binomial(link = "logit"))
+#c.da.w <- glm(redd ~ dar + csi+wsg, data = mrr, family = binomial(link = "logit"))
 
-raw2 <- AIC(d, v, c, da, w, c.da, c.w, c.da.w, null)
+raw2 <- AIC(d, v, c, da, w, c.da, null)
 mrr.output <- aictable(raw2,142)
 
 #Best model of Merced River Ranch data
-summary(c.w.inter)
+summary(c)
 par(mfrow = c(2,2)) 
-plot(c.w.inter)
+plot(c)
 write.csv(mrr.output, file = "Data/LR_Output/LROutput_MRR.csv", na = "")
 
 #########################################################
